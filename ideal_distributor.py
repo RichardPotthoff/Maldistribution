@@ -25,24 +25,27 @@ def flow_profile(r,z,R=1,Rsample_max=None):
   z_erf_max=0.004 #z_erf_max=0.004 ideal transition point: do not change
   z_samp_min=0.0032 #z_samp_min=0.0032 ideal transition pont: do not change
   if z>z_samp_min:
-#    sampled_profile= np.array([np.pi/len(distributor[0])*sample(r_,0,z,distributor,1) for r_ in r])
+    #the samplong method cannot be used for small values of z, because the 
+    #individual distributor points are still distinguishable
     sampled_profile=np.ones(len(r))
-    sampled_profile[-1]=np.pi/len(distributor[0])*sample(r[-1],0,z,distributor,1)
-    for i in range(len(r)-2,-1,-1):
+    for i in range(len(r)-1,-1,-1):
       sampled_profile[i]=np.pi/len(distributor[0])*sample(r[i],0,z,distributor,1)
-      if sampled_profile[i]<sampled_profile[i+1]:
-        break
-      elif sampled_profile[i]>1:
-        sampled_profile[i]=1
+      if (sampled_profile[i]>1.0) or (((i+1)<(len(r)-1)) and (sampled_profile[i]<sampled_profile[i+1])):
+        sampled_profile[i]=1.0
+        break#the remaining elements are already initialized to 1
     if not(z<z_erf_max):
        return sampled_profile
   if z<z_erf_max:
+    #we can use the exact solution for the onedimensional case for small  values of z,
+    #besause the curvature of the boundary is negligible
     calcd_profile=np.array([(math.erf(-(r_-1)/z**0.5)+1)/2 for r_ in r])
     if not(z>z_samp_min):
       return calcd_profile
-  assert((z>=z_samp_min) and (z<=z_erf_max))
+  assert((z>z_samp_min) and (z<z_erf_max))
+  # we are in the transition region between z_samp_min and z_erf_max
+  # interpolate between the two methods and return the result
   dz=z_erf_max-z_samp_min
-  return (z-z_samp_min)/dz*sampled_profile + (z_erf_max-z)/dz*calcd_profile
+  return (z-z_samp_min)/dz*sampled_profile + (z_erf_max-z)/dz*calcd_profile 
   
 datafilename=''#'flow_profiles.pkl'
 if os.path.exists(datafilename):
@@ -78,7 +81,7 @@ else:
   RR=RRD
   points=distributor
   flowdistribution=np.array([[[x,y,np.pi*RR/len(points)*sample(x,y,0.0005,all_points,R)] for x in x_sample] for y in y_sample])
-  
+#  flowdistribution=np.array([[[x,y,np.pi*RR/len(points)*sample(x,y,0.004,all_points,R)] for x in x_sample] for y in y_sample])  
   pl1=plt
   plt.gca().set_aspect('equal')
   pl1.plot(R*np.cos(np.linspace(0,2*np.pi,100)),R*np.sin(np.linspace(0,2*np.pi,100)),'black',lw=2)
