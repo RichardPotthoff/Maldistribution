@@ -11,17 +11,18 @@ def sample(x,y,z,points,R):
   flow=1/(np.pi*z)*np.sum(np.exp(-np.sum((points.transpose()-(x,y))**2,1)/z))
   #To Do: need to add flow contribution from region outside sqrt(2)*R for large values of z
   return flow
-def flow_profile(r,z,R=1,Rsample_max=None):
-  if Rsample_max==None:
-    Rsample_max=R
+ 
+def TriangularPattern(dx,RD=1,alpha=0):
+  dy=dx*3**0.5
+  sa,ca=np.sin(alpha),np.cos(alpha)
+  return np.array([(ca*xa+sa*ya,-sa*xa+ca*ya) for i in (0,1) for xa in np.arange(-(RD//dx)*dx-i*dx/2,RD,dx) for ya in np.arange(-(RD//dy)*dy-i*dy/2,RD,dy)  if (xa*xa+ya*ya)<RRD]).transpose()
+  
+def flow_profile(r,z):
   RD=1
   RRD=RD*RD
 #  dx,dy=np.array([0.05,0.05*3**0.5])*0.997267# ideal spacing to give 1459 points for R=1 do not change
-  dx,dy=np.array([0.05,0.05*3**0.5])*0.997267
 #  alpha=49.837/180*np.pi #ideal rotation for transition between erf and sample: do not change
-  alpha=49.837/180*np.pi
-  sa,ca=np.sin(alpha),np.cos(alpha)
-  distributor=np.array([(ca*xa+sa*ya,-sa*xa+ca*ya) for i in (0,1) for xa in np.arange(-(RD//dx)*dx-i*dx/2,RD,dx) for ya in np.arange(-(RD//dy)*dy-i*dy/2,RD,dy)  if (xa*xa+ya*ya)<RRD]).transpose()
+  distributor=TriangularPattern(0.05*0.997267,RD=1,alpha=49.837/180*np.pi)
   z_erf_max=0.004 #z_erf_max=0.004 ideal transition point: do not change
   z_samp_min=0.0032 #z_samp_min=0.0032 ideal transition pont: do not change
   if z>z_samp_min:
@@ -31,6 +32,7 @@ def flow_profile(r,z,R=1,Rsample_max=None):
     for i in range(len(r)-1,-1,-1):
       sampled_profile[i]=np.pi/len(distributor[0])*sample(r[i],0,z,distributor,1)
       if (sampled_profile[i]>1.0) or (((i+1)<(len(r)-1)) and (sampled_profile[i]<sampled_profile[i+1])):
+#        print(f'Break at radius{r[i]}, z={z} sample={sampled_profile[i]}')
         sampled_profile[i]=1.0
         break#the remaining elements are already initialized to 1
     if not(z<z_erf_max):
@@ -56,31 +58,33 @@ if os.path.exists(datafilename):
 else:
   r=np.linspace(0,2**0.5,100)
   z=np.exp(np.linspace(np.log(5e-4),np.log(50),100))
-  dx,dy=np.array([0.05,0.05*3**0.5])*0.997267
+#  dx,dy=np.array([0.05,0.05*3**0.5])*0.997267
+  dx=0.05*0.997267
   RD=1
   RRD=RD*RD
-  alpha=49.837/180*np.pi#49.85: transition z=0.003..0.004 49.83
-  sa,ca=np.sin(alpha),np.cos(alpha)
-  distributor=np.array([(ca*xa+sa*ya,-sa*xa+ca*ya) for i in (0,1) for xa in np.arange(-(RD//dx)*dx-i*dx/2,RD,dx) for ya in np.arange(-(RD//dy)*dy-i*dy/2,RD,dy)  if (xa*xa+ya*ya)<RRD])
-  print(f'Ideal number of points:{np.pi*RRD/(0.5*(dx*dy)):g} \n'
-        f'                Actual:{len(distributor):d}' )
+#  alpha=49.837/180*np.pi#49.85: transition z=0.003..0.004 49.83
+#  sa,ca=np.sin(alpha),np.cos(alpha)
+#  distributor=np.array([(ca*xa+sa*ya,-sa*xa+ca*ya) for i in (0,1) for xa in np.arange(-(RD//dx)*dx-i*dx/2,RD,dx) for ya in np.arange(-(RD//dy)*dy-i*dy/2,RD,dy)  if (xa*xa+ya*ya)<RRD])
+  distributor=TriangularPattern(dx,RD=RD,alpha=49.837/180*np.pi)
+  print(f'Ideal number of points:{np.pi*RRD/(0.5*(dx*dx*3**0.5)):g} \n'
+        f'                Actual:{len(distributor[0]):d}' )
         
-  all_points=distributor.transpose()
+  all_points=distributor
   plt.gca().set_aspect('equal')
   plt.xlim((-1.01,1.01))
   plt.ylim((-1.01,1.01))
   plt.plot(RD*np.cos(np.linspace(0,2*np.pi,100)),RD*np.sin(np.linspace(0,2*np.pi,100)),'black',lw=2)
   #plt.plot(2**0.5*RD*np.cos(np.linspace(0,2*np.pi,100)),2**0.5*RD*np.sin(np.linspace(0,2*np.pi,100)))
-  plt.scatter(distributor[:,0],distributor[:,1],marker='+')  
+  plt.scatter(distributor[0],distributor[1],marker='+')  
   plt.axis('off')
   plt.show()
   plt.close()   
   x_sample=np.arange(-0.025,1.25,dx/2) 
-  y_sample=np.arange(-0.025,1.25,dy/4)
+  y_sample=np.arange(-0.025,1.25,dx/2)
   R=RD
   RR=RRD
   points=distributor
-  flowdistribution=np.array([[[x,y,np.pi*RR/len(points)*sample(x,y,0.0005,all_points,R)] for x in x_sample] for y in y_sample])
+  flowdistribution=np.array([[[x,y,np.pi*RR/len(points[0])*sample(x,y,0.0005,all_points,R)] for x in x_sample] for y in y_sample])
 #  flowdistribution=np.array([[[x,y,np.pi*RR/len(points)*sample(x,y,0.004,all_points,R)] for x in x_sample] for y in y_sample])  
   pl1=plt
   plt.gca().set_aspect('equal')
