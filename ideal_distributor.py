@@ -53,8 +53,10 @@ def flow_profile(r,z):
 def ideal_distribution(x_sample,y_sample,z,RD=1,max_R_sample=None):
   x_sample=np.array(x_sample)/RD
   y_sample=np.array(y_sample)/RD
+  n=len(x_sample)
+  m=len(y_sample)
   z=z/RD**2
-  r_grid=(np.ones((100,100))*x_sample**2+(np.ones((100,100))*y_sample**2).transpose())**0.5
+  r_grid=(np.ones((m,n))*x_sample**2+(np.ones((n,m))*y_sample**2).transpose())**0.5
   if max_R_sample==None:
     max_R_sample=np.amax(r_grid)
   r=np.linspace(0,max_R_sample,max(len(x_sample),len(y_sample)))
@@ -153,7 +155,7 @@ if __name__=='__main__':
   for R in [1,1.5]:
     for z in [0.1]:
       x_sample=np.linspace(-2,2,100)
-      y_sample=x_sample
+      y_sample=np.linspace(-1.8,1.8,90)
       plt.gca().set_aspect('equal')
       plt.plot(*(R*f(np.linspace(0,2*np.pi,100)) for f in (np.cos,np.sin)),'black',lw=2)
       plt.contourf(x_sample,y_sample,1-ideal_distribution(x_sample,y_sample,z,R),np.linspace(0.,2.,40))
