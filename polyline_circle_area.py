@@ -1,6 +1,6 @@
 #Methods for the calculation of the intersection area between a circle and an arbitrary
 #polyline.
-#The method uses the polarimeter method, with the center of the circle as pole.
+#The method uses the planimeter method, with the center of the circle as pole.
 #Counter-clockwise areas are positive, clockwise areas are negative.
 #
 #The method is simple: The line segments that intersect the circle are split at 
