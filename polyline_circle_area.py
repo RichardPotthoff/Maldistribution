@@ -130,3 +130,23 @@ if __name__ =='__main__':
   plt.close()
   print(f'execution time for gridcellareas: {t2-t1}')
   print(f'error: {(sum(sum(areas))*dx*dy/np.pi)**0.5/R-1}')
+  
+  R1=R
+  R2=0.8*R 
+  x_samples=np.linspace(-2,2,81)
+  y_samples=np.linspace(-2,2,81)
+  dx=(x_samples[-1]-x_samples[0])/(len(x_samples)-1)
+  dy=(y_samples[-1]-y_samples[0])/(len(y_samples)-1)
+  t1=time.time()
+  areas=1/(dx*dy)*(gridcellareas(x_samples,y_samples,R1,dx=dx,dy=dy)-gridcellareas(x_samples,y_samples,R2,dx=dx,dy=dy))
+  areas[areas<0]=0.0#rounding errors screw up contour plot: force areas<0 to 0
+  t2=time.time()
+  plt.title(f'error for "gridcellareas(...)" : {sum(sum(areas))*dx*dy/((R1**2-R2**2)*np.pi)-1}')
+  plt.contourf(x_samples,y_samples, areas,np.linspace(0,2,20))
+  for R in [R1,R2]:
+    plt.plot(*[R*f(np.linspace(0,2*np.pi,200)) for f in [np.cos,np.sin]],'white',lw=1)
+  plt.gca().set_aspect('equal')
+  plt.show()
+  plt.close()
+  print(f'execution time for gridcellareas: {t2-t1}')
+  print(f'error: {sum(sum(areas))*dx*dy/((R1**2-R2**2)*np.pi)-1}')
