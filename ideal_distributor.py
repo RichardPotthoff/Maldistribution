@@ -1,37 +1,38 @@
-# calculations for the liquid distribution in an infinite packing
-# for an initial distribution of a circular area with a radius of R=1
-# and a superficial flow rate of L=1
-# 
 from matplotlib import pyplot as plt
 import numpy as np
 import math
 import json
 import os
-def sample(x,y,z,points,R):
-  flow=1/(np.pi*z)*np.sum(np.exp(-np.sum((points.transpose()-(x,y))**2,1)/z))
-  #To Do: need to add flow contribution from region outside sqrt(2)*R for large values of z
+import time
+def sample(x,y,z,points):
+  (xp,yp,f)= points[:3] if len(points)>=3 else (*points[:2],1.0)
+  flow=1/(np.pi*z)*np.sum(f*np.exp(-((xp-x)**2+(yp-y)**2)/z))
   return flow
  
-def TriangularPattern(dx,RD=1,alpha=0):
+def TriangularPattern(dx,RD=1,alpha=0,f=lambda x,y:1.0):
   RRD=RD*RD
   dy=dx*3**0.5
   sa,ca=np.sin(alpha),np.cos(alpha)
-  return np.array([(ca*xa+sa*ya,-sa*xa+ca*ya) for i in (0,1) for xa in np.arange(-(RD//dx)*dx-i*dx/2,RD,dx) for ya in np.arange(-(RD//dy)*dy-i*dy/2,RD,dy)  if (xa*xa+ya*ya)<RRD]).transpose()
+  return np.array([(ca*xa+sa*ya,-sa*xa+ca*ya,f(xa,ya)) for i in (0,1) for xa in np.arange(-(RD//dx)*dx-i*dx/2,RD,dx) for ya in np.arange(-(RD//dy)*dy-i*dy/2,RD,dy)  if (xa*xa+ya*ya)<RRD]).transpose()
   
-def flow_profile(r,z):
+def ideal_profile(r,z):
+# calculations for the liquid distribution in an infinite packing
+# for an initial distribution of a circular area with a radius of R=1
+# and a superficial flow rate of L=1
+# 
   RD=1
   RRD=RD*RD
 #  dx,dy=np.array([0.05,0.05*3**0.5])*0.997267# ideal spacing to give 1459 points for R=1 do not change
 #  alpha=49.837/180*np.pi #ideal rotation for transition between erf and sample: do not change
-  distributor=TriangularPattern(0.05*0.997267,RD=1,alpha=49.837/180*np.pi)
+  distributor=TriangularPattern(0.05*0.997267,RD=1,alpha=49.837/180*np.pi,f=lambda x,y:1)
   z_erf_max=0.004 #z_erf_max=0.004 ideal transition point: do not change
   z_samp_min=0.0032 #z_samp_min=0.0032 ideal transition pont: do not change
   if z>z_samp_min:
-    #the samplong method cannot be used for small values of z, because the 
+    #the sampling method cannot be used for small values of z, because the 
     #individual distributor points are still distinguishable
     sampled_profile=np.ones(len(r))
     for i in range(len(r)-1,-1,-1):
-      sampled_profile[i]=np.pi/len(distributor[0])*sample(r[i],0,z,distributor,1)
+      sampled_profile[i]=np.pi/len(distributor[0])*sample(r[i],0,z,distributor)
       if (sampled_profile[i]>1.0) or (((i+1)<(len(r)-1)) and (sampled_profile[i]<sampled_profile[i+1])):
 #        print(f'Break at radius{r[i]}, z={z} sample={sampled_profile[i]}')
         sampled_profile[i]=1.0
@@ -53,75 +54,67 @@ def flow_profile(r,z):
 def ideal_distribution(x_sample,y_sample,z,RD=1,max_R_sample=None):
   x_sample=np.array(x_sample)/RD
   y_sample=np.array(y_sample)/RD
+  z=z/RD**2
   n=len(x_sample)
   m=len(y_sample)
-  z=z/RD**2
-  r_grid=(np.ones((m,n))*x_sample**2+(np.ones((n,m))*y_sample**2).transpose())**0.5
+  r_grid=(x_sample**2+y_sample[:,np.newaxis]**2)**0.5
   if max_R_sample==None:
     max_R_sample=np.amax(r_grid)
-  r=np.linspace(0,max_R_sample,max(len(x_sample),len(y_sample)))
-  return(np.interp(r_grid,r,flow_profile(r,z)))
-  
-  
+  else:
+    max_R_sample=max_R_sample/RD
+  n_samples=max(len(x_sample),len(y_sample),50)
+  r=np.linspace(0,max_R_sample,n_samples)
+  return(np.interp(r_grid,r,ideal_profile(r,z)))
+
+#Run a test each time the module is imported, to make sure nothing has changed:
+#Calculate the difference to the analytical one- dimensional solution near the wall (r=0.99)
+#in the middle of the transition region (z=0.036).
+#The expected result is 0.0001835956304843
+assert ( (ideal_profile(r=[0.99],z=0.0036)[0]-(math.erf(-(0.99-1)/0.0036**0.5)+1)/2) - 0.0001835956304843).__abs__() < 1e-14, 'regression test failed: "ideal_profile(r=[0.99],z=0.0036)" returns an unexpected result' 
   
 if __name__=='__main__':
-  datafilename=''#'flow_profiles.pkl'
-  if os.path.exists(datafilename):
-    data=json.load(open(datafilename,'r',encoding='utf-8'))
-    r=np.array(data['r'])/2**0.5
-    z=np.array(data['z'])/2
-    flow_profiles=np.array(data['flow_profiles'])
-  else:
-    r=np.linspace(0,2**0.5,100)
-    z=np.exp(np.linspace(np.log(5e-4),np.log(50),100))
-    dx=0.05*0.997267
-    RD=1
-    RRD=RD*RD
-    distributor=TriangularPattern(dx,RD=RD,alpha=49.837/180*np.pi)
-    print(f'Ideal number of points:{np.pi*RRD/(0.5*(dx*dx*3**0.5)):g} \n'
-          f'                Actual:{len(distributor[0]):d}' )
-          
-    all_points=distributor
-    plt.gca().set_aspect('equal')
-    plt.xlim((-1.01,1.01))
-    plt.ylim((-1.01,1.01))
-    plt.plot(*(RD*f(np.linspace(0,2*np.pi,100)) for f in (np.cos,np.sin)),'black',lw=2)
-    #plt.plot(2**0.5*RD*np.cos(np.linspace(0,2*np.pi,100)),2**0.5*RD*np.sin(np.linspace(0,2*np.pi,100)))
-    plt.scatter(distributor[0],distributor[1],marker='+')  
-    plt.axis('off')
-    plt.show()
-    plt.close()   
-    x_sample=np.arange(-0.025,1.25,dx/2) 
-    y_sample=np.arange(-0.025,1.25,dx/2)
-    R=RD
-    RR=RRD
-    points=distributor
-    flowdistribution=np.array([[[x,y,np.pi*RR/len(points[0])*sample(x,y,0.0005,all_points,R)] for x in x_sample] for y in y_sample])
-  #  flowdistribution=np.array([[[x,y,np.pi*RR/len(points)*sample(x,y,0.004,all_points,R)] for x in x_sample] for y in y_sample])  
-    pl1=plt
-    plt.gca().set_aspect('equal')
-    pl1.plot(*(R*f(np.linspace(0,2*np.pi,100)) for f in (np.cos,np.sin)),'black',lw=2)
-    phi=0/180*np.pi
-    pl1.plot([0,1.5*R*np.cos(phi)],[0,1.5*R*np.sin(phi)],'black')
-    pl1.contourf(x_sample, y_sample, flowdistribution[:,:,2], np.arange(0.0,2,0.01))
-    pl1.xlim((0,1.2))
-    pl1.ylim((0,1.2))
-    pl1.axis('off')
-    plt.show()
-    plt.close()
-  #  flow_profiles=np.array([[np.pi/len(points)*sample(r_,0,z,all_points,1) for r_ in r] for z in z])
-    flow_profiles=np.array([flow_profile(r,z) for z in z])
+#test cases and graphical results for functions defined in this module
+  r=np.linspace(0,2**0.5,100)
+  z=np.exp(np.linspace(np.log(5e-4),np.log(50),100))
+  dx=0.05*0.997267
+  RD=1
+  RRD=RD*RD
+  distributor=TriangularPattern(dx,RD=RD,alpha=49.837/180*np.pi)
+  print(f'Ideal number of points:{np.pi*RRD/(0.5*(dx*dx*3**0.5)):g} \n'
+        f'                Actual:{len(distributor[0]):d}' )
+        
+  all_points=distributor
+  plt.gca().set_aspect('equal')
+  plt.xlim((-1.01,1.01))
+  plt.ylim((-1.01,1.01))
+  plt.plot(*(RD*f(np.linspace(0,2*np.pi,100)) for f in (np.cos,np.sin)),'black',lw=2)
+  plt.scatter(distributor[0],distributor[1],marker='+')  
+  plt.axis('off')
+  plt.show()
+  plt.close()   
+  x_sample=np.arange(-0.025,1.25,dx/2) 
+  y_sample=np.arange(-0.025,1.25,dx/2)
+  R=RD
+  RR=RRD
+  points=distributor
+  flowdistribution=np.array([[[x,y,np.pi*RR/len(points[0])*sample(x,y,0.0005,all_points)] for x in x_sample] for y in y_sample])
   
-  #  rra=np.ones((11,11))*xs**2+(np.ones((11,11))*ys**2).transpose()
-  #np.interp(rra,rr,fr)
-    
-  #for row in flow_profiles:
-  #  for i in range(len(row)-2,-1,-1):
-  #    if row[i]<row[i+1]:
-  #      row[0:i+1]=1
-  #      break
-  #    elif row[i]>1:
-  #      row[i]=1
+  pl1=plt
+  plt.gca().set_aspect('equal')
+  pl1.plot(*(R*f(np.linspace(0,2*np.pi,100)) for f in (np.cos,np.sin)),'black',lw=2)
+  phi=0/180*np.pi
+  pl1.plot([0,1.5*R*np.cos(phi)],[0,1.5*R*np.sin(phi)],'black')
+  pl1.contourf(x_sample, y_sample, flowdistribution[:,:,2], np.arange(0.0,2,0.01))
+  pl1.xlim((0,1.2))
+  pl1.ylim((0,1.2))
+  pl1.axis('off')
+  plt.show()
+  plt.close()
+#  flow_profiles=np.array([[np.pi/len(points)*sample(r_,0,z,all_points,1) for r_ in r] for z in z])
+  t1=time.time()
+  flow_profiles=np.array([ideal_profile(r,z) for z in z])
+  print(f'time for flow_profile:{(time.time()-t1)}')
+  
   for fp,z_ in zip(flow_profiles,z):
     plt.plot(r,fp,'blue')
     plt.plot(r,[(math.erf(-(r_-1)/z_**0.5)+1)/2 for r_ in r],'red')
@@ -151,7 +144,7 @@ if __name__=='__main__':
   plt.ylim((-0.001,0.001))
   plt.show()
   plt.close()
-  
+  print(f'assert abs((math.erf(-(0.99-1)/0.0036**0.5)+1)/2-ideal_profile([0.99],0.0036)[0]-{(math.erf(-(0.99-1)/0.0036**0.5)+1)/2-ideal_profile([0.99],0.0036)[0]:.16f})<1e-14 ')
   for R in [1,1.5]:
     for z in [0.1]:
       x_sample=np.linspace(-2,2,100)
