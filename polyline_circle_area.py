@@ -9,7 +9,6 @@
 #the area of the corresponding circle segment is calculated and used instead.
 #The total area is the sum of the areas calculated for each line (sub-) segment.
 #
-#*** work in progress, method not yet tested for correctness in all cases
 import numpy as np
 from matplotlib import pyplot as plt
 from math import asin
@@ -17,11 +16,13 @@ import time
 def line_circle_intersection_area(p1,p2,R):
   RR=R*R
   x1,y1,x2,y2=*p1,*p2
+  D=x1*y2-x2*y1
+  if D==0:# the line is aligned with the pole -> area=0 
+    return 0.0,[] #return the result immediately to prevent division by zero later on
   r1=(x1**2+y1**2)**0.5
   r2=(x2**2+y2**2)**0.5
   dx,dy=p2[0]-p1[0],p2[1]-p1[1]
   drr=(dx**2+dy**2)
-  D=x1*y2-x2*y1
   Delta=RR*drr-D**2
   result=[[x1,y1,r1,0,0]]
   if Delta>0:
@@ -33,7 +34,7 @@ def line_circle_intersection_area(p1,p2,R):
       a=D_/D
       if a>0 and a<1: #check if point is between p1, and p2
         result.append([x,y,R,a,D_])#we save some intermediate results for the area calculation
-    if len(result)==3 and result[1][3]>result[2][3]:
+    if len(result)==3 and result[1][3]>result[2][3]:#sort the results if there are 2 intersections
       p=result[1]
       result[1]=result[2]
       result[2]=p
@@ -49,66 +50,83 @@ def line_circle_intersection_area(p1,p2,R):
       A+=Aline2/2
   return A,[c[:2] for c in result[1:-1]]#return area and intersection point coordinates
 
-def gridcellareas(x_samples,y_samples,R):
+def gridcellareas(x_samples,y_samples,R,dx=None,dy=None):
   RR=R*R
-  dx=(x_samples[-1]-x_samples[0])/(len(x_samples)-1)
-  dy=(y_samples[-1]-y_samples[0])/(len(y_samples)-1)
+  dx=(x_samples[-1]-x_samples[0])/(len(x_samples)-1) if dx==None else dx
+  dy=(y_samples[-1]-y_samples[0])/(len(y_samples)-1) if dy==None else dy
   dr=(dx**2+dy**2)**0.5
-  result=np.ones((len(x_samples),len(y_samples)))#everything is set to one
-  ri=(x_samples**2+y_samples[:,np.newaxis]**2)**0.5
-  result[ri>R]=0#everything outside the circle is set to zero
-  borderix=np.where(np.abs(ri-R)<dr/2) #cells that are cut by the circumference 
+  result=np.ones((len(x_samples),len(y_samples)))*dx*dy#everything is set to full size
+  rij=(x_samples**2+y_samples[:,np.newaxis]**2)**0.5
+  result[rij>R]=0#everything outside the circle is set to zero
+  borderix=np.where(np.abs(rij-R)<dr/2) #cells that are cut by the circumference 
   cellcoords=np.array([[-dx,-dy],[dx,-dy],[dx,dy],[-dx,dy],[-dx,-dx]])*0.5
   for i,j in zip(*borderix):
     x=x_samples[i]
     y=y_samples[j]
     corners=cellcoords+[x,y]
-    result[i,j]=1/(dx*dy)*sum([line_circle_intersection_area(p1,p2,R)[0] for p1,p2 in 
-    zip(corners[:-1,:],corners[1:,:])])
+    result[i,j]=max(0,sum([line_circle_intersection_area(p1,p2,R)[0] for p1,p2 in 
+    zip(corners[:-1,:],corners[1:,:])]))
   return result
   
 if __name__ =='__main__':
   R=1.6  
-  x_samples=np.linspace(-2,2,81)
-  y_samples=np.linspace(-2,2,81)
+  #line_circle_intersection_area(*[[-2,-2],[0,-2]],1.5)
+  poly=[
+    np.array([[-2,1],[1,0.3],[1.5,1.3],[1.1,1.6]]),
+    np.array([[-1,-1],[1,-1],[1,1],[-1,1]])*0.5+(0.5,0.1),
+    np.array(list(reversed([[-1,-1],[1,-1],[1,1],[-1,1]])))*0.5+(0.5,0.1),
+    np.array([[-1,-1],[1,-1],[1,1],[-1,1]])*2.0+(0.0,0.0),
+    np.array([[-1,-1],[1,-1],[1,1],[-1,1]])*1.0+(0.5,0.1)
+    ]
+  for pl in poly:
+    lines=np.vstack((pl,pl[0,:]))
+    plt.plot(lines[:,0],lines[:,1])
+    
+    intersections=[]
+    A=0
+    for p1,p2 in zip(lines[:-1,:],lines[1:,:]):
+      plt.plot(*np.vstack((p1,p2)).transpose(),lw=2)
+      plt.plot(*np.vstack(([0,0],p1)).transpose())
+      area,xpoints=line_circle_intersection_area(p1,p2,R)
+      print(p1,p2,area)
+      A+=area
+      intersections+=xpoints
+    print(f'polygon area inside the circle = {A}')
+    plt.title(f'polygon area inside the circle = {A:0.3f}')
+    if len(intersections)>0:
+      intersections=np.array(intersections)
+      plt.scatter(intersections[:,0],intersections[:,1])
+    for p in intersections:
+      plt.plot(*np.vstack(([0,0],p)).transpose())
+    plt.plot(*[R*f(np.linspace(0,2*np.pi,200)) for f in [np.cos,np.sin]],lw=2)
+    plt.gca().set_aspect('equal')
+    plt.show()
+    plt.close()
+  
+  x_samples=np.linspace(-2,2,21)
+  y_samples=np.linspace(-2,2,21)
   dx=(x_samples[-1]-x_samples[0])/(len(x_samples)-1)
   dy=(y_samples[-1]-y_samples[0])/(len(y_samples)-1)
-  t1=time.time()
-  areas=gridcellareas(x_samples,y_samples,R)
-  t2=time.time()
   
-  #line_circle_intersection_area(*[[-2,-2],[0,-2]],1.5)
-  poly1=np.array([[-2,1],[1,0.3],[1.5,1.3],[1.1,1.6]])
-  #poly1=np.array([[ 0.5, -0.5],[ 1.5, -0.5],[ 1.5,  0.5],[ 0.5,  0.5]])
-  #poly1=np.array([[-2,-2],[2,-2],[2,2],[-2,2]])
-  #poly1=np.array(list(([[-2,-2],[2,-2],[2,2],[-2,2]])))
-  lines=np.vstack((poly1,poly1[0,:]))
-  plt.plot(lines[:,0],lines[:,1])
-  
-  intersections=[]
-  A=0
-  for p1,p2 in zip(lines[:-1,:],lines[1:,:]):
-    plt.plot(*np.vstack((p1,p2)).transpose(),lw=2)
-    plt.plot(*np.vstack(([0,0],p1)).transpose())
-    area,xpoints=line_circle_intersection_area(p1,p2,R)
-    print(p1,p2,area)
-    A+=area
-    intersections+=xpoints
-  print(f'polygon area inside the circle = {A}')
-  if len(intersections)>0:
-    intersections=np.array(intersections)
-    plt.scatter(intersections[:,0],intersections[:,1])
-  for p in intersections:
-    plt.plot(*np.vstack(([0,0],p)).transpose())
-  plt.plot(*[R*f(np.linspace(0,2*np.pi,200)) for f in [np.cos,np.sin]],lw=2)
-  plt.gca().set_aspect('equal')
-  plt.show()
-  plt.close()
-  
+  areas=np.ones((len(x_samples),len(y_samples)))
+  rij=(x_samples**2+y_samples[:,np.newaxis]**2)**0.5
+  areas[rij>R]=0
+  plt.title(f'error for "areas[rij>R]=0" : {(sum(sum(areas))*dx*dy/np.pi)**0.5/R-1:0.3g}')
   plt.contourf(x_samples,y_samples, areas,np.linspace(0,2,20))
-  plt.plot(*[R*f(np.linspace(0,2*np.pi,200)) for f in [np.cos,np.sin]],'black',lw=1)
+  plt.plot(*[R*f(np.linspace(0,2*np.pi,200)) for f in [np.cos,np.sin]],'white',lw=1)
   plt.gca().set_aspect('equal')
   plt.show()
   plt.close()
-  print(f'time for gridcellareas: {t2-t1}')
+  print(f'error: {(sum(sum(areas))*dx*dy/np.pi)**0.5/R-1}')
+  
+  t1=time.time()
+  areas=gridcellareas(x_samples,y_samples,R,dx=dx,dy=dy)/(dx*dy)
+  t2=time.time()
+  plt.title(f'error for "gridcellareas(...)" : {(sum(sum(areas))*dx*dy/np.pi)**0.5/R-1:0.3g}')
+  plt.contourf(x_samples,y_samples, areas,np.linspace(0,2,20))
+  plt.plot(*[R*f(np.linspace(0,2*np.pi,200)) for f in [np.cos,np.sin]],'white',lw=1)
+  plt.gca().set_aspect('equal')
+  plt.show()
+  plt.close()
+  print(f'execution time for gridcellareas: {t2-t1}')
   print(f'error: {(sum(sum(areas))*dx*dy/np.pi)**0.5/R-1}')
