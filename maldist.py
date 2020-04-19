@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 from  ideal_distributor import ideal_distribution
+from polyline_circle_area import gridcellareas
 def sample(x,y,z,points):
   (xp,yp,f)= points[:3] if len(points)>=3 else (*points[:2],1.0)
   flow=1/(np.pi*z)*np.sum(f*np.exp(-((xp-x)**2+(yp-y)**2)/z))
@@ -14,11 +15,11 @@ def flow_area(distribution,dx,dy,R):
   return np.minimum(1,np.maximum(0,0.4/dx*(R-(distribution[:,:,0]**2+distribution[:,:,1]**2)**0.5)+0.5))
   
 dx,dy=0.1,0.05
-RD=0.99975 #adjusted to match grid spacing to number of points: RD=(n_points*dx*dy/pi)**0.5
+RD=0.999750001#adjusted to match grid spacing to number of points: RD=(n_points*dx*dy/pi)**0.5
 RRD=RD*RD
 distributor=np.array([(xa,ya,1) for xa in np.arange(-(RD//dx)*dx-dx/2,RD,dx) for ya in np.arange(-(RD//dy)*dy-dy/2,RD,dy) if (xa*xa+ya*ya)<RRD*0.995]).transpose()#"if" condition adjusted to give 628 points
 print(f'Ideal number of points:{np.pi*RRD/(dx*dy):g} \n'
-        f'                Actual:{len(distributor):d}' )
+        f'                Actual:{len(distributor[0]):d}' )
         
 plt.gca().set_aspect('equal')
 plt.xlim((-1.01,1.01))
@@ -50,10 +51,11 @@ for z in[0.02,100]:
       
       Δxs=0.025
       Δys=0.025
+      Δrs=(Δxs**2+Δys**2)**0.5
       x_sample=np.arange(-R-Δxs,R+Δxs,Δxs) 
       y_sample=np.arange(-R-Δys,R+Δys,Δys)
       t1=time.time()
-      flowdistribution=np.array([[[x,y,np.pi*RR/total_flow(points)*sample(x,y,z,all_points) if (x**2+y**2)<(R+Δxs)**2 else 1 ] for x in x_sample] for y in y_sample])
+      flowdistribution=np.array([[[x,y,np.pi*RR/total_flow(points)*sample(x,y,z,all_points) if (x**2+y**2)<(R+Δrs*2)**2 else 1.0 ] for x in x_sample] for y in y_sample])
       t2=time.time()
       
       #Adding an infinite packing around the mirrored area with an initial uniform distribution 
@@ -73,17 +75,19 @@ for z in[0.02,100]:
       pl1.set_xlim((-R*1.02,R*1.02))
       pl1.set_ylim((-R*1.02,R*1.02))
       pl1.axis('off')
+      areas=gridcellareas(x_sample,y_sample,R,Δxs,Δys)
+      flowdistribution=np.concatenate((flowdistribution,areas[:,:,np.newaxis]),axis=2)
       
-      flow_spectrum=sorted([f for row in flowdistribution for x,y,f in row  if (x*x+y*y)<(R+0.001)**2])
-  #    flowdistribution=np.reshape(flowdistribution,(lambda s:(s[0]*s[1],s[2]))(flowdistribution.shape))
-  #    flow_spectrum=np.sort(flowdistribution[(flowdistribution[:,0]**2+flowdistribution[:,1]**2)<RR,2])
+      flow_spectrum=np.array(sorted([(f,a) for row in flowdistribution for x,y,f,a in row  if (x*x+y*y)<(R+Δrs/2)**2]))
       
-      sampled_area=len(flow_spectrum)*Δxs*Δys
-      print(f'average flow:{sum(flow_spectrum)/len(flow_spectrum)}, sampled Diameter:{(4/np.pi*sampled_area)**0.5}')
+      cummulative_area=np.cumsum(flow_spectrum[:,1])
+      sampled_area=cummulative_area[-1]
+      print(f'average flow:{sum(flow_spectrum[:,0]*flow_spectrum[:,1])/sampled_area}, sampled Diameter:{(4/np.pi*sampled_area)**0.5}')
       pl2=fig.add_subplot(2,3,j+3+1)
       pl2.set_title(f'$z = {z}$')
-      pl2.contourf([i/len(flow_spectrum) for i in range(len(flow_spectrum))], [0.7,1.3], np.vstack((flow_spectrum,flow_spectrum)), np.arange(0.7,1.3,0.01))
-      pl2.plot([i/len(flow_spectrum) for i in range(len(flow_spectrum))], flow_spectrum, 'black',lw=3)
+      pl2.contourf([i/len(flow_spectrum) for i in range(len(flow_spectrum))], [0.7,1.3], np.vstack((flow_spectrum[:,0],flow_spectrum[:,0])), np.arange(0.7,1.3,0.01))
+      
+      pl2.plot(np.linspace(0,1,50),np.interp(np.linspace(0,1,50),cummulative_area/sampled_area,flow_spectrum[:,0]), 'black',lw=3)
       if j!=0: 
         pl2.yaxis.set_visible(False)
       else:
