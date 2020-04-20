@@ -71,7 +71,9 @@ def ideal_distribution(x_sample,y_sample,z,RD=1,max_R_sample=None):
 #in the middle of the transition region (z=0.036).
 #The expected result is 0.0001835956304843
 assert ( (ideal_profile(r=[0.99],z=0.0036)[0]-(math.erf(-(0.99-1)/0.0036**0.5)+1)/2) - 0.0001835956304843).__abs__() < 1e-14, 'regression test failed: "ideal_profile(r=[0.99],z=0.0036)" returns an unexpected result' 
-  
+#execute the print statement below to print the assert statement for the current configuration      
+#  print(f'assert abs((ideal_profile(r=[0.99],z=0.0036)[0]-(math.erf(-(0.99-1)/0.0036**0.5)+1)/2) -{ideal_profile([0.99],0.0036)[0]-(math.erf(-(0.99-1)/0.0036**0.5)+1)/2:.16f})<1e-14, \'regression test failed: "ideal_profile(r=[0.99],z=0.0036)" returns an unexpected result\' ')
+ 
 if __name__=='__main__':
 #test cases and graphical results for functions defined in this module
   r=np.linspace(0,2**0.5,100)
@@ -144,7 +146,6 @@ if __name__=='__main__':
   plt.ylim((-0.001,0.001))
   plt.show()
   plt.close()
-  print(f'assert abs((math.erf(-(0.99-1)/0.0036**0.5)+1)/2-ideal_profile([0.99],0.0036)[0]-{(math.erf(-(0.99-1)/0.0036**0.5)+1)/2-ideal_profile([0.99],0.0036)[0]:.16f})<1e-14 ')
   for R in [1,1.5]:
     for z in [0.1]:
       x_sample=np.linspace(-2,2,100)
@@ -157,3 +158,5 @@ if __name__=='__main__':
       plt.axis('off')
       plt.show()
       plt.close()
+      
+
