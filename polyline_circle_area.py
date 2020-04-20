@@ -50,23 +50,35 @@ def line_circle_intersection_area(p1,p2,R):
       A+=Aline2/2
   return A,[c[:2] for c in result[1:-1]]#return area and intersection point coordinates
 
-def gridcellareas(x_samples,y_samples,R,dx=None,dy=None):
+def gridcellareas(x_samples=None,y_samples=None,R=None,dx=None,dy=None,cellcenters=None,cellcorners=None):
   RR=R*R
-  dx=(x_samples[-1]-x_samples[0])/(len(x_samples)-1) if dx==None else dx
-  dy=(y_samples[-1]-y_samples[0])/(len(y_samples)-1) if dy==None else dy
-  dr=(dx**2+dy**2)**0.5
-  result=np.ones((len(x_samples),len(y_samples)))*dx*dy#everything is set to full size
-  rij=(x_samples**2+y_samples[:,np.newaxis]**2)**0.5
+  if cellcorners==None:
+    dx=(x_samples[-1]-x_samples[0])/(len(x_samples)-1) if dx==None else dx
+    dy=(y_samples[-1]-y_samples[0])/(len(y_samples)-1) if dy==None else dy
+    dr=0.5*(dx**2+dy**2)**0.5
+    cellcorners=np.array([[-dx,-dy],[dx,-dy],[dx,dy],[-dx,dy]])*0.5
+  else:
+    cellcorners=np.array(cellcorners)
+    dr=max(cellcorners[:,0]**2+cellcorners[:,1]**2)**0.5
+  cellcorners=np.concatenate((cellcorners,cellcorners[:1]))
+  cellarea=0.5*sum([p1[0]*p2[1]-p2[0]*p1[1] for p1,p2 in zip(cellcorners[:-1],cellcorners[1:])])
+  if cellcenters==None:
+    cellcenters=np.array([(x,y) for y in y_samples for x in x_samples])
+    shape=(len(y_samples),len(x_samples),2)
+  else:
+    cellcenters=np.array(cellcenters)
+    shape=cellcenters.shape
+    cellcenters=cellcenters.reshape((-1,shape[-1]))
+  result=np.ones(len(cellcenters))*cellarea#everything is set to full size
+  rij=(cellcenters[:,0]**2+cellcenters[:,1]**2)**0.5
   result[rij>R]=0#everything outside the circle is set to zero
-  borderix=np.where(np.abs(rij-R)<dr/2) #cells that are cut by the circumference 
-  cellcoords=np.array([[-dx,-dy],[dx,-dy],[dx,dy],[-dx,dy],[-dx,-dx]])*0.5
-  for i,j in zip(*borderix):
-    x=x_samples[i]
-    y=y_samples[j]
-    corners=cellcoords+[x,y]
-    result[i,j]=max(0,sum([line_circle_intersection_area(p1,p2,R)[0] for p1,p2 in 
-    zip(corners[:-1,:],corners[1:,:])]))
-  return result
+  borderix=np.where(np.abs(rij-R)<dr) #cells that are cut by the circumference 
+  
+  for i in borderix[0]:
+    corners=cellcorners+cellcenters[i,:2]
+    result[i]=max(0,sum([line_circle_intersection_area(p1,p2,R)[0] for p1,p2 in 
+    zip(corners[:-1],corners[1:])]))
+  return result.reshape(shape[:-1])
   
 if __name__ =='__main__':
   R=1.6  
@@ -138,7 +150,7 @@ if __name__ =='__main__':
   dx=(x_samples[-1]-x_samples[0])/(len(x_samples)-1)
   dy=(y_samples[-1]-y_samples[0])/(len(y_samples)-1)
   t1=time.time()
-  areas=1/(dx*dy)*(gridcellareas(x_samples,y_samples,R1,dx=dx,dy=dy)-gridcellareas(x_samples,y_samples,R2,dx=dx,dy=dy))
+  areas=1/(dx*dy)*(gridcellareas(R=R1,cellcenters=[[(x,y) for x in x_samples] for y in y_samples],cellcorners=np.array([[-dx,-dy],[dx,-dy],[dx,dy],[-dx,dy]])*0.5)-gridcellareas(x_samples,y_samples,R2,dx=dx,dy=dy))
   areas[areas<0]=0.0#rounding errors screw up contour plot: force areas<0 to 0
   t2=time.time()
   plt.title(f'error for "gridcellareas(...)" : {sum(sum(areas))*dx*dy/((R1**2-R2**2)*np.pi)-1}')
