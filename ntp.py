@@ -183,7 +183,7 @@ if __name__ == '__main__':
   #    ax2.set(ylabel='y')
     ax2.set(xlabel='x')
     plotMcCabe(alpha,xb,yb,xd,yd,ax=ax1)
-    ax1.set_title(f'ntp={ntp_a(alpha,xb,yb,xd,yd).real:.5f}(a),{ntp_i(alpha,xb,yb,xd,yd):.5f}(s)')
+    ax1.set_title(f'ntp={ntp_a(alpha,xb,yb,xd,yd).real:.5f}(a),{ntp_s(alpha,xb,yb,xd,yd):.5f}(s)')
     lg=(yd-yb)/(xd-xb)
     xz=zeros(alpha,xb,yb,lg)
     yz=y_eq(xz,alpha)
