@@ -1,7 +1,5 @@
 import numpy as np
 from matplotlib import pyplot as plt
-import sympy as sy
-from cmath import sqrt,log
 
 def y_eq(x,alpha):
   return x*alpha/(x*(alpha-1)+1)
@@ -134,8 +132,8 @@ def ntp_i(alpha,xb,yb,xd,yd,intervals=21):
 def zeros(alpha,x0,y0,lg):
   #calculate the intersection points between operating line and equilibrium line
   b=((alpha-1)*(x0*lg+(1-y0)) + 1 - lg )
-  d=sqrt((b+2*lg)**2 -4*alpha*lg)
-  return np.array([b - d, b + d])/(2*lg*(alpha-1))
+  d=complex((b+2.0*lg)**2 -4.0*alpha*lg)**0.5
+  return np.array([b - d, b + d])/(2.0*lg*(alpha-1))
   
 def plotMcCabe(alpha,xb,yb,xd,yd,ax=None,limits=((0,1),(0,1))):
   (xmin,xmax),(ymin,ymax)=limits
