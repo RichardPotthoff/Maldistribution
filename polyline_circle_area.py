@@ -63,22 +63,22 @@ def gridcellareas(x_samples=None,y_samples=None,R=None,dx=None,dy=None,cellcente
   cellcorners=np.concatenate((cellcorners,cellcorners[:1]))
   cellarea=0.5*sum([p1[0]*p2[1]-p2[0]*p1[1] for p1,p2 in zip(cellcorners[:-1],cellcorners[1:])])
   if cellcenters==None:
-    cellcenters=np.array([(x,y) for y in y_samples for x in x_samples])
-    shape=(len(y_samples),len(x_samples),2)
+    cellcenters=np.array([[(x,y) for x in x_samples] for y in y_samples])
   else:
     cellcenters=np.array(cellcenters)
-    shape=cellcenters.shape
-    cellcenters=cellcenters.reshape((-1,shape[-1]))
-  result=np.ones(len(cellcenters))*cellarea#everything is set to full size
-  rij=(cellcenters[:,0]**2+cellcenters[:,1]**2)**0.5
-  result[rij>R]=0#everything outside the circle is set to zero
-  borderix=np.where(np.abs(rij-R)<dr) #cells that are cut by the circumference 
+  shape=cellcenters.shape
+  cellcenters=cellcenters.reshape((-1,shape[-1]))#flatten array, except for last dimension
+  result=np.ones(len(cellcenters))*cellarea#initialize the result (all cells are set to full area)
+  rij=(cellcenters[:,0]**2+cellcenters[:,1]**2)**0.5#distance of cellcenter to center of circle
+  result[rij>R]= 0#set all cells with ||cellcenter|| > R to zero
   
+  borderix=np.where(np.abs(rij-R)<dr) #indices of the cells that may be cut by the circumference 
+  #calculate the areas off all cells near the circumference exactly:
   for i in borderix[0]:
     corners=cellcorners+cellcenters[i,:2]
     result[i]=max(0,sum([line_circle_intersection_area(p1,p2,R)[0] for p1,p2 in 
     zip(corners[:-1],corners[1:])]))
-  return result.reshape(shape[:-1])
+  return result.reshape(shape[:-1]) #return array has the same shape as 'cellcenters', minus the last dimension: [[ [x,y], ... ], ...] -> [[ a, ... ], ...]
   
 if __name__ =='__main__':
   R=1.6  
