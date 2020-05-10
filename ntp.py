@@ -164,7 +164,7 @@ def plotMcCabe(alpha,xb,yb,xd,yd,ax=None,limits=((0,1),(0,1))):
   ax.plot([xb,xd],[yb+dy,yd+dy],'green')
   ax.plot([xp],[y_eq(xp,alpha)],'green',marker='o')
   st=np.array(list(steps()))
-  ax.plot(xz,yz,'blue',ls=':',marker='o')
+  ax.plot(xz.real,yz.real,'blue',ls=':',marker='o')
   ax.plot(st[:,0],st[:,1],'blue',marker='+')  
   ax.set_xlim(limits[0])
   ax.set_ylim(limits[1])
