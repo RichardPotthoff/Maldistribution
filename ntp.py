@@ -24,14 +24,16 @@ def xb_yd(yb,xd,lg,alpha,ntp,test=False):
   yd_min=yb
   yed=y_eq(xd,alpha)
   yd_pinch=yed#pinch at xd
+  xb_pinch=xd-(yd_pinch-yb)/lg
   m=dy_eq_dx(xd,alpha)
-  dy_pinch=(lg-m)*(xd-xb)/((m/lg)**-ntp-1)
+  dy_pinch=(lg-m)*(xd-xb_pinch)/((m/lg)**-ntp-1)
   xeb=x_eq(yb,alpha)
   yd_pinch_=yb+lg*(xd-xeb)#pinch at xb
   if (yd_pinch_<yd_pinch)!=(yd_pinch_<yd_min):
     yd_pinch=yd_pinch_
+    xb_pinch=xeb
     m=dy_eq_dx(xeb,alpha)
-    dx_pinch=(1/lg-1/m)*((xd-xb)*lg)/((lg/m)**-ntp-1)
+    dx_pinch=(1/lg-1/m)*((xd-xb_pinch)*lg)/((lg/m)**-ntp-1)
     dy_pinch=dx_pinch*lg
   xp=((alpha/lg)**0.5-1)/(alpha-1)#m=l/g 
   if (xp<xeb)!=(xp<xd):
@@ -39,7 +41,7 @@ def xb_yd(yb,xd,lg,alpha,ntp,test=False):
     yd_pinch_=yep+lg*(xd-xp)#pinch at m=l/g
     if (yd_pinch_<yd_pinch)!=(yd_pinch_<yd_min):
       yd_pinch=yd_pinch_
-      dy_pinch=(yd-yb)/ntp
+      dy_pinch=(yd_pinch-yb)/ntp
   def xb_yb_xd_yd(t):#return operating line with yd between yd_min and yd_pinch for t between -inf to inf
     yd=yd_pinch-(yd_pinch-yd_min)*1/(1+np.exp(t))#use logistic function 
     xb=xd-(yd-yb)/lg
