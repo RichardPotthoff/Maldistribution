@@ -20,7 +20,7 @@ def integrate(f,x0,x1,n):
   y=f(x)
   return h/3*(y[0]+4*np.sum(y[1:-1:2])+2*np.sum(y[2:-2:2])+y[-1])#simpson's formula
 
-def xb_yd(yb,xd,lg,alpha,ntp,test=False):
+def xb_yd(yb,xd,lg,alpha,ntp,test=False,newton=False):
   yd_min=yb
   yed=y_eq(xd,alpha)
   yd_pinch=yed#pinch at xd
@@ -49,21 +49,23 @@ def xb_yd(yb,xd,lg,alpha,ntp,test=False):
 #  return xb_yb_xd_yd(newton(lambda t:ntp-ntp_a(alpha,*xb_yb_xd_yd(t)),0))
   if test: return xb_yb_xd_yd(ntp)
   t_est=np.log(1/(dy_pinch/(yd_pinch-yd_min))-1)
-#  t1=t_est
-#  t2=t_est
-#  n_est1=ntp_a(alpha,*xb_yb_xd_yd(t_est))
-#  n_est2=n_est1
-#  while (n_est1<ntp)==(n_est2<ntp):
-#    if not(n_est1<ntp):
-#      t1-=1
-#      n_est1=ntp_a(alpha,*xb_yb_xd_yd(t1))
-#    if (n_est2<ntp):
-#      t2+=1
-#      n_est2=ntp_a(alpha,*xb_yb_xd_yd(t2))
-#  print(f't1:{t1},n_est1:{n_est1},t2:{t2},n_est2:{n_est2}')
-#  t_calc=root(lambda t:ntp-ntp_a(alpha,*xb_yb_xd_yd(t)),t1,t2)
-  t_calc=newton(lambda t:ntp-ntp_a(alpha,*xb_yb_xd_yd(t)),t_est)
-#  print(f't_est:{t_est},t_calc:{t_calc}')
+  if newton:
+    t_calc=newton(lambda t:ntp-ntp_a(alpha,*xb_yb_xd_yd(t)),t_est)
+  else:
+    t1=t_est
+    t2=t_est
+    n_est1=ntp_a(alpha,*xb_yb_xd_yd(t_est))
+    n_est2=n_est1
+    while (n_est1<ntp)==(n_est2<ntp):
+      if not(n_est1<ntp):
+        t1-=1
+        n_est1=ntp_a(alpha,*xb_yb_xd_yd(t1))
+      if (n_est2<ntp):
+        t2+=1
+        n_est2=ntp_a(alpha,*xb_yb_xd_yd(t2))
+  #  print(f't1:{t1},n_est1:{n_est1},t2:{t2},n_est2:{n_est2}')
+    t_calc=root(lambda t:ntp-ntp_a(alpha,*xb_yb_xd_yd(t)),t1,t2)
+  #  print(f't_est:{t_est},t_calc:{t_calc}')
   return xb_yb_xd_yd(t_calc)  
   
 def newton(f,x,df=None,eps=1e-6):
@@ -220,7 +222,7 @@ if __name__ == '__main__':
     yb_=(yb-yz[0])/(yz[1]-yz[0])
     xd_=1-(xz[1]-xd)/(xz[1]-xz[0])
     yd_=1-(yz[1]-yd)/(yz[1]-yz[0])
-    xb,yb,xd,yd=xb_yd(yb,xd,lg,alpha,20)
+    xb,yb,xd,yd=xb_yd(yb,xd,lg,alpha,30)
     ax2.set_title(f'ntp={ntp_a(alpha,xb,yb,xd,yd).real:.5f}(a),{ntp_s(alpha,xb,yb,xd,yd):.5f}(s)')
     plotMcCabe(alpha,xb,yb,xd,yd,ax=ax2)
   
