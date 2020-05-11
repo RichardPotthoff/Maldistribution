@@ -24,23 +24,44 @@ def xb_yd(yb,xd,lg,alpha,ntp,test=False):
   yd_min=yb
   yed=y_eq(xd,alpha)
   yd_pinch=yed#pinch at xd
+  m=dy_eq_dx(xd,alpha)
+  dy_pinch=(lg-m)*(xd-xb)/((m/lg)**-ntp-1)
   xeb=x_eq(yb,alpha)
   yd_pinch_=yb+lg*(xd-xeb)#pinch at xb
   if (yd_pinch_<yd_pinch)!=(yd_pinch_<yd_min):
     yd_pinch=yd_pinch_
+    m=dy_eq_dx(xeb,alpha)
+    dx_pinch=(1/lg-1/m)*((xd-xb)*lg)/((lg/m)**-ntp-1)
+    dy_pinch=dx_pinch*lg
   xp=((alpha/lg)**0.5-1)/(alpha-1)#m=l/g 
   if (xp<xeb)!=(xp<xd):
     yep=y_eq(xp,alpha)
     yd_pinch_=yep+lg*(xd-xp)#pinch at m=l/g
     if (yd_pinch_<yd_pinch)!=(yd_pinch_<yd_min):
       yd_pinch=yd_pinch_
+      dy_pinch=(yd-yb)/ntp
   def xb_yb_xd_yd(t):#return operating line with yd between yd_min and yd_pinch for t between -inf to inf
-    yd=yd_min+(yd_pinch-yd_min)*1/(1+np.exp(-t))#use logistic function 
+    yd=yd_pinch-(yd_pinch-yd_min)*1/(1+np.exp(t))#use logistic function 
     xb=xd-(yd-yb)/lg
     return (xb,yb,xd,yd)
 #  return xb_yb_xd_yd(newton(lambda t:ntp-ntp_a(alpha,*xb_yb_xd_yd(t)),0))
   if test: return xb_yb_xd_yd(ntp)
-  return xb_yb_xd_yd(root(lambda t:ntp-ntp_a(alpha,*xb_yb_xd_yd(t)),-10,10))  
+  t_est=np.log(1/(dy_pinch/(yd_pinch-yd_min))-1)
+  t1=t_est
+  t2=t_est
+  n_est1=ntp_a(alpha,*xb_yb_xd_yd(t_est))
+  n_est2=n_est1
+  while (n_est1<ntp)==(n_est2<ntp):
+    if not(n_est1<ntp):
+      t1-=1
+      n_est1=ntp_a(alpha,*xb_yb_xd_yd(t1))
+    if (n_est2<ntp):
+      t2+=1
+      n_est2=ntp_a(alpha,*xb_yb_xd_yd(t2))
+#  print(f't1:{t1},n_est1:{n_est1},t2:{t2},n_est2:{n_est2}')
+  t_calc=root(lambda t:ntp-ntp_a(alpha,*xb_yb_xd_yd(t)),t1,t2)
+#  print(f't_est:{t_est},t_calc:{t_calc}')
+  return xb_yb_xd_yd(t_calc)  
   
 def newton(f,x,df=None,eps=1e-6):
   y=2*eps
@@ -169,8 +190,6 @@ def plotMcCabe(alpha,xb,yb,xd,yd,ax=None,limits=((0,1),(0,1))):
   ax.set_xlim(limits[0])
   ax.set_ylim(limits[1])
 
-  
-    
 if __name__ == '__main__':
   A4=(lambda A:(2**((-A*0.5)-0.25),2**((-A*0.5)+0.25)))(4)#
   fig=plt.figure(figsize=(A4[1]/0.0254,A4[0]/0.0254))
@@ -198,7 +217,7 @@ if __name__ == '__main__':
     yb_=(yb-yz[0])/(yz[1]-yz[0])
     xd_=1-(xz[1]-xd)/(xz[1]-xz[0])
     yd_=1-(yz[1]-yd)/(yz[1]-yz[0])
-    xb,yb,xd,yd=xb_yd(yb,xd,lg,alpha,10)
+    xb,yb,xd,yd=xb_yd(yb,xd,lg,alpha,15)
     ax2.set_title(f'ntp={ntp_a(alpha,xb,yb,xd,yd).real:.5f}(a),{ntp_s(alpha,xb,yb,xd,yd):.5f}(s)')
     plotMcCabe(alpha,xb,yb,xd,yd,ax=ax2)
   
