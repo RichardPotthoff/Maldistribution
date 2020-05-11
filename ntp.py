@@ -49,19 +49,20 @@ def xb_yd(yb,xd,lg,alpha,ntp,test=False):
 #  return xb_yb_xd_yd(newton(lambda t:ntp-ntp_a(alpha,*xb_yb_xd_yd(t)),0))
   if test: return xb_yb_xd_yd(ntp)
   t_est=np.log(1/(dy_pinch/(yd_pinch-yd_min))-1)
-  t1=t_est
-  t2=t_est
-  n_est1=ntp_a(alpha,*xb_yb_xd_yd(t_est))
-  n_est2=n_est1
-  while (n_est1<ntp)==(n_est2<ntp):
-    if not(n_est1<ntp):
-      t1-=1
-      n_est1=ntp_a(alpha,*xb_yb_xd_yd(t1))
-    if (n_est2<ntp):
-      t2+=1
-      n_est2=ntp_a(alpha,*xb_yb_xd_yd(t2))
+#  t1=t_est
+#  t2=t_est
+#  n_est1=ntp_a(alpha,*xb_yb_xd_yd(t_est))
+#  n_est2=n_est1
+#  while (n_est1<ntp)==(n_est2<ntp):
+#    if not(n_est1<ntp):
+#      t1-=1
+#      n_est1=ntp_a(alpha,*xb_yb_xd_yd(t1))
+#    if (n_est2<ntp):
+#      t2+=1
+#      n_est2=ntp_a(alpha,*xb_yb_xd_yd(t2))
 #  print(f't1:{t1},n_est1:{n_est1},t2:{t2},n_est2:{n_est2}')
-  t_calc=root(lambda t:ntp-ntp_a(alpha,*xb_yb_xd_yd(t)),t1,t2)
+#  t_calc=root(lambda t:ntp-ntp_a(alpha,*xb_yb_xd_yd(t)),t1,t2)
+  t_calc=newton(lambda t:ntp-ntp_a(alpha,*xb_yb_xd_yd(t)),t_est)
 #  print(f't_est:{t_est},t_calc:{t_calc}')
   return xb_yb_xd_yd(t_calc)  
   
@@ -72,7 +73,7 @@ def newton(f,x,df=None,eps=1e-6):
     it+=1
     y=f(x)
     x=x-(y/df(x) if df else y/((f(x+eps)-y)/eps))
-  print(f'newton steps:{it}')
+#  print(f'newton steps:{it}')
   return x
   
 def root(f,x1,x2,eps=1e-6,maxit=100):
@@ -219,7 +220,7 @@ if __name__ == '__main__':
     yb_=(yb-yz[0])/(yz[1]-yz[0])
     xd_=1-(xz[1]-xd)/(xz[1]-xz[0])
     yd_=1-(yz[1]-yd)/(yz[1]-yz[0])
-    xb,yb,xd,yd=xb_yd(yb,xd,lg,alpha,15)
+    xb,yb,xd,yd=xb_yd(yb,xd,lg,alpha,20)
     ax2.set_title(f'ntp={ntp_a(alpha,xb,yb,xd,yd).real:.5f}(a),{ntp_s(alpha,xb,yb,xd,yd):.5f}(s)')
     plotMcCabe(alpha,xb,yb,xd,yd,ax=ax2)
   
