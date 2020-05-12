@@ -1,8 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
 import time
 from  ideal_distributor import ideal_distribution
 from polyline_circle_area import gridcellareas
+from ntp import plotMcCabe,y_eq
 def sample(x,y,z,points):
   (xp,yp,f)= points[:3] if len(points)>=3 else (*points[:2],1.0)
   flow=1/(np.pi*z)*np.sum(f*np.exp(-((xp-x)**2+(yp-y)**2)/z))
@@ -20,7 +22,10 @@ RRD=RD*RD
 distributor=np.array([(xa,ya,1) for xa in np.arange(-(RD//dx)*dx-dx/2,RD,dx) for ya in np.arange(-(RD//dy)*dy-dy/2,RD,dy) if (xa*xa+ya*ya)<RRD*0.995]).transpose()#"if" condition adjusted to give 628 points
 print(f'Ideal number of points:{np.pi*RRD/(dx*dy):g} \n'
         f'                Actual:{len(distributor[0]):d}' )
-        
+plt.close()        
+A4=(lambda A:(2**((-A*0.5)-0.25),2**((-A*0.5)+0.25)))(4)#
+
+"""
 plt.gca().set_aspect('equal')
 plt.xlim((-1.01,1.01))
 plt.ylim((-1.01,1.01))
@@ -30,9 +35,11 @@ plt.scatter(distributor[0],distributor[1],marker='+')
 plt.axis('off')
 plt.show()
 plt.close()   
-for z in[0.02,100]:
+"""
+for z in[0.02]:
   for i,offset in enumerate(np.array([[0,0],[0.0125,0]])):
-    fig=plt.figure()
+    plt.close()
+    fig = plt.figure(1,(A4[0]/0.0254,A4[1]/0.0254))
     for j,R in enumerate([RD,RD-0.0125,RD+0.0125]):
       RR=R*R
       points=np.copy(distributor)
@@ -65,7 +72,7 @@ for z in[0.02,100]:
       
       t3=time.time()
       print(f'execution time for "flowdistribution": {t2-t1:.3f}s, "ideal_distribution": {t3-t2:.3f}s')
-      pl1=fig.add_subplot(2,3,j+1,adjustable='box', aspect='equal')
+      pl1=fig.add_subplot(4,3,j+1,adjustable='box', aspect='equal')
       for r in np.arange(R,1.5*R,0.01):
         pl1.plot(r*np.cos(np.linspace(0,2*np.pi,100)),r*np.sin(np.linspace(0,2*np.pi,100)),'white',lw=2)
         pass
@@ -83,7 +90,7 @@ for z in[0.02,100]:
       cummulative_area=np.cumsum(flow_spectrum[:,1])
       sampled_area=cummulative_area[-1]
       print(f'average flow:{sum(flow_spectrum[:,0]*flow_spectrum[:,1])/sampled_area}, sampled Diameter:{(4/np.pi*sampled_area)**0.5}')
-      pl2=fig.add_subplot(2,3,j+3+1)
+      pl2=fig.add_subplot(4,3,j+3+1)
       pl2.set_title(f'$z = {z}$')
       pl2.contourf([i/len(flow_spectrum) for i in range(len(flow_spectrum))], [0.7,1.3], np.vstack((flow_spectrum[:,0],flow_spectrum[:,0])), np.arange(0.7,1.3,0.01),cmap='jet')
       
@@ -95,6 +102,20 @@ for z in[0.02,100]:
       if j==1:
         pl2.set(xlabel='fraction of column cross-section')
         
+      pl3=fig.add_subplot(4,3,j+6+1,adjustable='box', aspect='equal')
+      alpha=2.5
+      x_y=(1-alpha**0.5)/(1-alpha)
+      xb,yb,xd,yd=0.01,0.01,x_y-0.01,x_y-0.01
+      yde=y_eq(xd,alpha)
+      plotMcCabe(alpha,xb,yb,xd,yde-0.02,ax=pl3)
+      plotMcCabe(alpha,1-(yde-0.02),1-xd,1-yb,1-xb,ax=pl3)
+      if j!=0: 
+        pl3.yaxis.set_visible(False)
+      pl4=fig.add_subplot(4,3,j+9+1,adjustable='box', aspect='equal')
+      plotMcCabe(alpha,xb,yb,xd,yde-0.01,ax=pl4)  
+      plotMcCabe(alpha,1-(yde-0.01),1-xd,1-yb,1-xb,ax=pl4)  
+      if j!=0: 
+        pl4.yaxis.set_visible(False)
     fig.tight_layout(pad=0.3)
     plt.show()
     plt.close()
