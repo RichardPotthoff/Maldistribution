@@ -4,7 +4,7 @@ import matplotlib
 import time
 from  ideal_distributor import ideal_distribution
 from polyline_circle_area import gridcellareas
-from ntp import plotMcCabe,y_eq
+from ntp import plotMcCabe,y_eq,ntp_a,xb_yd
 def sample(x,y,z,points):
   (xp,yp,f)= points[:3] if len(points)>=3 else (*points[:2],1.0)
   flow=1/(np.pi*z)*np.sum(f*np.exp(-((xp-x)**2+(yp-y)**2)/z))
@@ -103,19 +103,30 @@ for z in[0.02]:
         pl2.set(xlabel='fraction of column cross-section')
         
       pl3=fig.add_subplot(4,3,j+6+1,adjustable='box', aspect='equal')
-      alpha=2.5
-      x_y=(1-alpha**0.5)/(1-alpha)
-      xb,yb,xd,yd=0.01,0.01,x_y-0.01,x_y-0.01
-      yde=y_eq(xd,alpha)
-      plotMcCabe(alpha,xb,yb,xd,yde-0.02,ax=pl3)
-      plotMcCabe(alpha,1-(yde-0.02),1-xd,1-yb,1-xb,ax=pl3)
-      if j!=0: 
-        pl3.yaxis.set_visible(False)
       pl4=fig.add_subplot(4,3,j+9+1,adjustable='box', aspect='equal')
-      plotMcCabe(alpha,xb,yb,xd,yde-0.01,ax=pl4)  
-      plotMcCabe(alpha,1-(yde-0.01),1-xd,1-yb,1-xb,ax=pl4)  
-      if j!=0: 
-        pl4.yaxis.set_visible(False)
+      alpha=2.5
+      x=np.linspace(0,1,30)
+      for ax in [pl3,pl4]:
+        ax.plot(x,y_eq(x,alpha),'black',lw=1)
+        ax.set_xlim((0,1))
+        ax.set_ylim((0,1))
+        if j!=0: 
+          ax.yaxis.set_visible(False)
+      x_y=(1-alpha**0.5)/(1-alpha)
+      xb,yb,xd,yd=0.001,0.001,x_y,x_y
+      yde=y_eq(xd,alpha)
+      ntp=20
+      for alpha,xb,yb,xd,yd,ntp,ax in [
+        (alpha,xb,yb,xd,yde-0.05,ntp,pl3),
+        (alpha,1-(yde-0.05),1-xd,1-yb,1-xb,ntp,pl3),
+        (alpha,xb,yb,xd,yde-0.01,ntp,pl4),
+        (alpha,1-(yde-0.01),1-xd,1-yb,1-xb,ntp,pl4)]:
+        lg=(yd-yb)/(xd-xb)
+        lmin,lmax=np.interp([0,1],cummulative_area/sampled_area,flow_spectrum[:,0])
+        cmap = matplotlib.cm.get_cmap('jet')
+        for lg,cl in [(lg*lmin,cmap((lmin-0.7)/(1.3-0.7))),(lg,cmap((1-0.7)/(1.3-0.7))),(lg*lmax,cmap((lmax-0.7)/(1.3-0.7)))]:
+          xb,yb,xd,yd=xb_yd(yb,xd,lg,alpha,ntp)
+          ax.plot([xb,xd],[yb,yd],color=cl)
     fig.tight_layout(pad=0.3)
     plt.show()
     plt.close()
