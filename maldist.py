@@ -85,16 +85,28 @@ for z in[0.02]:
       areas=gridcellareas(x_sample,y_sample,R,Δxs,Δys)
       flowdistribution=np.concatenate((flowdistribution,areas[:,:,np.newaxis]),axis=2)
       
-      flow_spectrum=np.array(sorted([(f,a) for row in flowdistribution for x,y,f,a in row  if (x*x+y*y)<(R+rs)**2]))
+      flow_spectrum=np.array(sorted([(f,a,f*a) for row in flowdistribution for x,y,f,a in row  if (x*x+y*y)<(R+rs)**2]))
       
       cummulative_area=np.cumsum(flow_spectrum[:,1])
+      cummulative_G=cummulative_area/cummulative_area[-1]
+      cummulative_L=np.cumsum(flow_spectrum[:,2])/cummulative_area[-1]
       sampled_area=cummulative_area[-1]
-      print(f'average flow:{sum(flow_spectrum[:,0]*flow_spectrum[:,1])/sampled_area}, sampled Diameter:{(4/np.pi*sampled_area)**0.5}')
+      print(f'average flow:{sum(flow_spectrum[:,0]*flow_spectrum[:,1])/sampled_area}, sampled Diameter:{(4/np.pi*sampled_area)**0.5}, total flow:{cummulative_L[-1]}')
       pl2=fig.add_subplot(4,3,j+3+1)
       pl2.set_title(f'$z = {z}$')
       pl2.contourf([i/len(flow_spectrum) for i in range(len(flow_spectrum))], [0.7,1.3], np.vstack((flow_spectrum[:,0],flow_spectrum[:,0])), np.arange(0.7,1.3,0.01),cmap='jet')
-      
+      L_bins=np.arange(0.7-0.025,1.3+0.05,0.05)
+      A_bins=np.interp(L_bins,flow_spectrum[:,0],cummulative_area)/cummulative_area[-1]
+      L_A=np.array([[(L1-L0)/(A1-A0),(A0+A1)/2] for L0,L1,A0,A1 in zip(np.interp(A_bins[:-1],cummulative_area/cummulative_area[-1],cummulative_L),np.interp(A_bins[1:],cummulative_area/cummulative_area[-1],cummulative_L),A_bins[:-1],A_bins[1:]) if A0!=A1])
+      cmap = matplotlib.cm.get_cmap('jet')
+      for Li,Ai in L_A:
+        pl2.plot(Ai,Li,color='black',markerfacecolor=cmap((Li-0.7)/(1.3-0.7)),marker='o',zorder=10)
+      for Li,Ai in zip(L_bins,A_bins):
+        pl2.plot([0,Ai],[Li,Li],'black',ls='-',lw=1)
+        pl2.plot([Ai,Ai],[0.7,Li],'black',ls='-',lw=1)
       pl2.plot(np.linspace(0,1,50),np.interp(np.linspace(0,1,50),cummulative_area/sampled_area,flow_spectrum[:,0]), 'black',lw=3)
+      pl2.set_xlim((0,1))
+      pl2.set_ylim((0.7,1.3))
       if j!=0: 
         pl2.yaxis.set_visible(False)
       else:
