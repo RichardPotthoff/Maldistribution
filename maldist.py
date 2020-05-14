@@ -62,13 +62,13 @@ for z in[0.02]:
       x_sample=np.arange(-R-Δxs,R+Δxs,Δxs) 
       y_sample=np.arange(-R-Δys,R+Δys,Δys)
       t1=time.time()
-      flowdistribution=np.array([[[x,y,np.pi*RR/total_flow(points)*sample(x,y,z,all_points) if (x**2+y**2)<(R+rs)**2 else 1.0 ] for x in x_sample] for y in y_sample])
+      flowdistribution=np.array([[np.pi*RR/total_flow(points)*sample(x,y,z,all_points) if (x**2+y**2)<(R+rs)**2 else 1.0  for x in x_sample] for y in y_sample])
       t2=time.time()
       
       #Adding an infinite packing around the mirrored area with an initial uniform distribution 
       #counteracts 'leakage' through the wall at large values of 'z', and ensures
       #correct results for z->inf: 
-      flowdistribution[:,:,2] += (1-ideal_distribution(x_sample,y_sample,z,RD=R*(1+total_flow(mirrored_points)/total_flow(points))**0.5,max_R_sample=R+rs))
+      flowdistribution += (1-ideal_distribution(x_sample,y_sample,z,RD=R*(1+total_flow(mirrored_points)/total_flow(points))**0.5,max_R_sample=R+rs))
       
       t3=time.time()
       print(f'execution time for "flowdistribution": {t2-t1:.3f}s, "ideal_distribution": {t3-t2:.3f}s')
@@ -78,32 +78,40 @@ for z in[0.02]:
         pass
       pl1.set_title(f'$D={2*R*1000:.0f}mm,$ $\Delta x={(offset[0]**2+offset[1]**2)**0.5*1000:.1f}mm$')
       pl1.plot(R*np.cos(np.linspace(0,2*np.pi,100)),R*np.sin(np.linspace(0,2*np.pi,100)),'black',lw=2)
-      pl1.contourf(x_sample, y_sample, flowdistribution[:,:,2], np.arange(0.7,1.3,0.01),cmap='jet')
+      pl1.contourf(x_sample, y_sample, flowdistribution, np.arange(0.7,1.3,0.01),cmap='jet')
       pl1.set_xlim((-R*1.02,R*1.02))
       pl1.set_ylim((-R*1.02,R*1.02))
       pl1.axis('off')
       areas=gridcellareas(x_sample,y_sample,R,Δxs,Δys)
-      flowdistribution=np.concatenate((flowdistribution,areas[:,:,np.newaxis]),axis=2)
+      flowdistribution=np.concatenate((flowdistribution[:,:,np.newaxis],np.ones((*flowdistribution.shape,1)),areas[:,:,np.newaxis]),axis=2)
       
-      flow_spectrum=np.array(sorted([(f,a,f*a) for row in flowdistribution for x,y,f,a in row  if (x*x+y*y)<(R+rs)**2]))
+      flow_spectrum=np.array(sorted([(l/g,l,g,a,l*a,g*a) for row in flowdistribution for l,g,a in row  if a>0]))
       
-      cummulative_area=np.cumsum(flow_spectrum[:,1])
-      cummulative_G=cummulative_area/cummulative_area[-1]
-      cummulative_L=np.cumsum(flow_spectrum[:,2])/cummulative_area[-1]
+      cummulative_area=np.cumsum(flow_spectrum[:,3])
+      cummulative_L=np.cumsum(flow_spectrum[:,4])/cummulative_area[-1]
+      cummulative_G=np.cumsum(flow_spectrum[:,5])/cummulative_area[-1]
       sampled_area=cummulative_area[-1]
-      print(f'average flow:{sum(flow_spectrum[:,0]*flow_spectrum[:,1])/sampled_area}, sampled Diameter:{(4/np.pi*sampled_area)**0.5}, total flow:{cummulative_L[-1]}')
+      print(f'average flow:{cummulative_L[-1]}, sampled Diameter:{(4/np.pi*sampled_area)**0.5}, total flow:{cummulative_L[-1]*cummulative_area[-1]}')
       pl2=fig.add_subplot(4,3,j+3+1)
       pl2.set_title(f'$z = {z}$')
       pl2.contourf([i/len(flow_spectrum) for i in range(len(flow_spectrum))], [0.7,1.3], np.vstack((flow_spectrum[:,0],flow_spectrum[:,0])), np.arange(0.7,1.3,0.01),cmap='jet')
-      L_bins=np.arange(0.7-0.025,1.3+0.05,0.05)
-      A_bins=np.interp(L_bins,flow_spectrum[:,0],cummulative_area)/cummulative_area[-1]
-      L_A=np.array([[(L1-L0)/(A1-A0),(A0+A1)/2] for L0,L1,A0,A1 in zip(np.interp(A_bins[:-1],cummulative_area/cummulative_area[-1],cummulative_L),np.interp(A_bins[1:],cummulative_area/cummulative_area[-1],cummulative_L),A_bins[:-1],A_bins[1:]) if A0!=A1])
+      LG_bins=np.linspace(flow_spectrum[:,0].min(),flow_spectrum[:,0].max(),11)
+      A_bins=np.interp(LG_bins,flow_spectrum[:,0],cummulative_area)/cummulative_area[-1]
+      L_A=np.array([[(L1-L0)/(G1-G0),(A0+A1)/2] for L0,L1,G0,G1,A0,A1 in 
+        zip(
+        np.interp(A_bins[:-1],cummulative_area/cummulative_area[-1],cummulative_L),
+        np.interp(A_bins[1:],cummulative_area/cummulative_area[-1],cummulative_L),
+        np.interp(A_bins[:-1],cummulative_area/cummulative_area[-1],cummulative_G),
+        np.interp(A_bins[1:],cummulative_area/cummulative_area[-1],cummulative_G),        
+        A_bins[:-1],
+        A_bins[1:]) 
+        if A0!=A1])
       cmap = matplotlib.cm.get_cmap('jet')
       for Li,Ai in L_A:
         pl2.plot(Ai,Li,color='black',markerfacecolor=cmap((Li-0.7)/(1.3-0.7)),marker='o',zorder=10)
-      for Li,Ai in zip(L_bins,A_bins):
-        pl2.plot([0,Ai],[Li,Li],'black',ls='-',lw=1)
-        pl2.plot([Ai,Ai],[0.7,Li],'black',ls='-',lw=1)
+      for LGi,Ai in zip(LG_bins,A_bins):
+        pl2.plot([0,Ai],[LGi,LGi],'black',ls='-',lw=1)
+        pl2.plot([Ai,Ai],[0.7,LGi],'black',ls='-',lw=1)
       pl2.plot(np.linspace(0,1,50),np.interp(np.linspace(0,1,50),cummulative_area/sampled_area,flow_spectrum[:,0]), 'black',lw=3)
       pl2.set_xlim((0,1))
       pl2.set_ylim((0.7,1.3))
