@@ -95,24 +95,27 @@ for z in[0.02]:
       pl2=fig.add_subplot(4,3,j+3+1)
       pl2.set_title(f'$z = {z}$')
       pl2.contourf([i/len(flow_spectrum) for i in range(len(flow_spectrum))], [0.7,1.3], np.vstack((flow_spectrum[:,0],flow_spectrum[:,0])), np.arange(0.7,1.3,0.01),cmap='jet')
-      LG_bins=np.linspace(flow_spectrum[:,0].min(),flow_spectrum[:,0].max(),11)
-      A_bins=np.interp(LG_bins,flow_spectrum[:,0],cummulative_area)/cummulative_area[-1]
-      L_A=np.array([[(L1-L0)/(G1-G0),(A0+A1)/2] for L0,L1,G0,G1,A0,A1 in 
+      LG_bins=np.linspace(flow_spectrum[:,0].min()-0.001,flow_spectrum[:,0].max()+0.001,11)
+      A_bins=np.interp(LG_bins,flow_spectrum[:,0],cummulative_area,left=0)
+      # L_G_A has a row for each sub-column: [Liquid, Gas, Area, x-coordinate for spectrum plot)]
+      L_G_A=np.array([[L1-L0,G1-G0,A1-A0,0.5*(A0+A1)/cummulative_area[-1]] for L0,L1,G0,G1,A0,A1 in 
         zip(
-        np.interp(A_bins[:-1],cummulative_area/cummulative_area[-1],cummulative_L),
-        np.interp(A_bins[1:],cummulative_area/cummulative_area[-1],cummulative_L),
-        np.interp(A_bins[:-1],cummulative_area/cummulative_area[-1],cummulative_G),
-        np.interp(A_bins[1:],cummulative_area/cummulative_area[-1],cummulative_G),        
+        np.interp(A_bins[:-1],cummulative_area,cummulative_L,left=0),
+        np.interp(A_bins[1:],cummulative_area,cummulative_L,left=0),
+        np.interp(A_bins[:-1],cummulative_area,cummulative_G,left=0),
+        np.interp(A_bins[1:],cummulative_area,cummulative_G,left=0),        
         A_bins[:-1],
         A_bins[1:]) 
         if A0!=A1])
       cmap = matplotlib.cm.get_cmap('jet')
-      for Li,Ai in L_A:
-        pl2.plot(Ai,Li,color='black',markerfacecolor=cmap((Li-0.7)/(1.3-0.7)),marker='o',zorder=10)
+      for Li,Gi,Ai,A_i in L_G_A:
+        LGi=Li/Gi
+        pl2.plot(A_i,LGi,color='black',markerfacecolor=cmap((LGi-0.7)/(1.3-0.7)),marker='o',zorder=10)
       for LGi,Ai in zip(LG_bins,A_bins):
+        Ai=Ai/cummulative_area[-1]
         pl2.plot([0,Ai],[LGi,LGi],'black',ls='-',lw=1)
         pl2.plot([Ai,Ai],[0.7,LGi],'black',ls='-',lw=1)
-      pl2.plot(np.linspace(0,1,50),np.interp(np.linspace(0,1,50),cummulative_area/sampled_area,flow_spectrum[:,0]), 'black',lw=3)
+      pl2.plot(np.linspace(0,1,50),np.interp(np.linspace(0,cummulative_area[-1],50),cummulative_area,flow_spectrum[:,0]), 'black',lw=3)
       pl2.set_xlim((0,1))
       pl2.set_ylim((0.7,1.3))
       if j!=0: 
