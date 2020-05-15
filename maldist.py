@@ -4,7 +4,7 @@ import matplotlib
 import time
 from  ideal_distributor import ideal_distribution
 from polyline_circle_area import gridcellareas
-from ntp import plotMcCabe,y_eq,ntp_a,xb_yd
+from ntp import plotMcCabe,y_eq,ntp_a,xb_yd,ntp_s
 def sample(x,y,z,points):
   (xp,yp,f)= points[:3] if len(points)>=3 else (*points[:2],1.0)
   flow=1/(np.pi*z)*np.sum(f*np.exp(-((xp-x)**2+(yp-y)**2)/z))
@@ -136,20 +136,33 @@ for z in[0.02]:
         if j!=0: 
           ax.yaxis.set_visible(False)
       x_y=(1-alpha**0.5)/(1-alpha)
-      xb,yb,xd,yd=0.001,0.001,x_y,x_y
-      yde=y_eq(xd,alpha)
+      yde=y_eq(x_y,alpha)
       ntp=20
       for alpha,xb,yb,xd,yd,ntp,ax in [
-        (alpha,xb,yb,xd,yde-0.05,ntp,pl3),
-        (alpha,1-(yde-0.05),1-xd,1-yb,1-xb,ntp,pl3),
-        (alpha,xb,yb,xd,yde-0.01,ntp,pl4),
-        (alpha,1-(yde-0.01),1-xd,1-yb,1-xb,ntp,pl4)]:
+        (alpha,0,0,x_y,yde-0.05,ntp,pl3),
+        (alpha,1-(yde-0.05),1-x_y,1,1,ntp,pl3),
+        (alpha,0,0,x_y,yde,ntp,pl4),
+        (alpha,1-(yde),1-x_y,1,1,ntp,pl4)]:
         lg=(yd-yb)/(xd-xb)
-        lmin,lmax=np.interp([0,1],cummulative_area/sampled_area,flow_spectrum[:,0])
+        xb,yb,xd,yd=xb_yd(yb,xd,lg,alpha,ntp)
+        ax.plot([xb,xd],[yb,yd],color='black',ls=':',zorder=10)
         cmap = matplotlib.cm.get_cmap('jet')
-        for lg,cl in [(lg*lmin,cmap((lmin-0.7)/(1.3-0.7))),(lg,cmap((1-0.7)/(1.3-0.7))),(lg*lmax,cmap((lmax-0.7)/(1.3-0.7)))]:
-          xb,yb,xd,yd=xb_yd(yb,xd,lg,alpha,ntp)
-          ax.plot([xb,xd],[yb,yd],color=cl)
+        Ltot=L_G_A[:,0].sum()
+        Gtot=L_G_A[:,1].sum()
+        yd_m=0
+        xb_m=0
+        for Li,Gi,Ai,_ in L_G_A:
+          Li=Li/Ltot*lg
+          Gi=Gi/Gtot
+          LGi=Li/Gi
+          cl=cmap((LGi/lg-0.7)/(1.3-0.7))
+          xb_,yb_,xd_,yd_=xb_yd(yb,xd,LGi,alpha,ntp)
+          ax.plot([xb_,xd_],[yb_,yd_],color=cl)
+          yd_m+=yd_*Gi
+          xb_m+=xb_*Li
+        xb_m=xb_m/lg
+        ax.plot([xb_m,xd],[yb,yd_m],color='black',zorder=10)
+        ax.text((xd+xb)/2,0.6,f'{ntp_a(alpha,xb_m,yb,xd,yd_m):.2f}',verticalalignment='center', horizontalalignment='center')
     fig.tight_layout(pad=0.3)
     plt.show()
     plt.close()
