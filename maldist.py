@@ -36,7 +36,7 @@ plt.axis('off')
 plt.show()
 plt.close()   
 """
-for z in[0.02]:
+for z,alpha,ntp in[(0.02,2.5,20),(0.02,1.5,20)]:
   for i,offset in enumerate(np.array([[0,0],[0.0125,0]])):
     plt.close()
     fig = plt.figure(1,(A4[0]/0.0254,A4[1]/0.0254))
@@ -76,7 +76,7 @@ for z in[0.02]:
       for r in np.arange(R,1.5*R,0.01):
         pl1.plot(r*np.cos(np.linspace(0,2*np.pi,100)),r*np.sin(np.linspace(0,2*np.pi,100)),'white',lw=2)
         pass
-      pl1.set_title(f'$D={2*R*1000:.0f}mm,$ $\Delta x={(offset[0]**2+offset[1]**2)**0.5*1000:.1f}mm$')
+      pl1.set_title(f'$D={2*R*1000:.0f}mm,$ $\\Delta x={(offset[0]**2+offset[1]**2)**0.5*1000:.1f}mm$')
       pl1.plot(R*np.cos(np.linspace(0,2*np.pi,100)),R*np.sin(np.linspace(0,2*np.pi,100)),'black',lw=2)
       pl1.contourf(x_sample, y_sample, flowdistribution, np.arange(0.7,1.3,0.01),cmap='jet')
       pl1.set_xlim((-R*1.02,R*1.02))
@@ -127,7 +127,6 @@ for z in[0.02]:
         
       pl3=fig.add_subplot(4,3,j+6+1,adjustable='box', aspect='equal')
       pl4=fig.add_subplot(4,3,j+9+1,adjustable='box', aspect='equal')
-      alpha=2.5
       x=np.linspace(0,1,30)
       for ax in [pl3,pl4]:
         ax.plot(x,y_eq(x,alpha),'black',lw=1)
@@ -137,12 +136,12 @@ for z in[0.02]:
           ax.yaxis.set_visible(False)
       x_y=(1-alpha**0.5)/(1-alpha)
       yde=y_eq(x_y,alpha)
-      ntp=20
       for alpha,xb,yb,xd,yd,ntp,ax in [
         (alpha,0,0,x_y,yde-0.05,ntp,pl3),
         (alpha,1-(yde-0.05),1-x_y,1,1,ntp,pl3),
         (alpha,0,0,x_y,yde,ntp,pl4),
-        (alpha,1-(yde),1-x_y,1,1,ntp,pl4)]:
+        (alpha,1-(yde),1-x_y,1,1,ntp,pl4) ]:
+          
         lg=(yd-yb)/(xd-xb)
         xb,yb,xd,yd=xb_yd(yb,xd,lg,alpha,ntp)
         ax.plot([xb,xd],[yb,yd],color='black',ls=':',zorder=10)
@@ -161,8 +160,11 @@ for z in[0.02]:
           yd_m+=yd_*Gi
           xb_m+=xb_*Li
         xb_m=xb_m/lg
-        ax.plot([xb_m,xd],[yb,yd_m],color='black',zorder=10)
-        ax.text((xd+xb)/2,0.6,f'{ntp_a(alpha,xb_m,yb,xd,yd_m):.2f}',verticalalignment='center', horizontalalignment='center')
+        ax.plot([xb_m,xd],[yb,yd_m],color='black',marker='+',zorder=10)
+        ax.text((xd+xb)/2,1-x_y,f'{ntp_a(alpha,xb_m,yb,xd,yd_m):.2f}',verticalalignment='center', horizontalalignment='center')
+        if j==1:
+          pl4.set(xlabel=f'$\\alpha$={alpha:.2f}, ntp={ntp:.1f}')
+      
     fig.tight_layout(pad=0.3)
     plt.show()
     plt.close()
