@@ -76,7 +76,7 @@ for z,alpha,ntp in[(0.02,2.5,20),(0.02,1.5,20)]:
       for r in np.arange(R,1.5*R,0.01):
         pl1.plot(r*np.cos(np.linspace(0,2*np.pi,100)),r*np.sin(np.linspace(0,2*np.pi,100)),'white',lw=2)
         pass
-      pl1.set_title(f'$D={2*R*1000:.0f}mm,$ $\\Delta x={(offset[0]**2+offset[1]**2)**0.5*1000:.1f}mm$')
+      pl1.set_title(f'$D={2*R*1000:.0f}\\mathrm{{mm}},\\ \\Delta x={(offset[0]**2+offset[1]**2)**0.5*1000:.1f}\\mathrm{{mm}}$')
       pl1.plot(R*np.cos(np.linspace(0,2*np.pi,100)),R*np.sin(np.linspace(0,2*np.pi,100)),'black',lw=2)
       pl1.contourf(x_sample, y_sample, flowdistribution, np.arange(0.7,1.3,0.01),cmap='jet')
       pl1.set_xlim((-R*1.02,R*1.02))
@@ -165,7 +165,7 @@ for z,alpha,ntp in[(0.02,2.5,20),(0.02,1.5,20)]:
         if j==1 and lg<1:
           r=1/(1/lg-1)
           r_min=1/(1/x_y-2)
-          ax.set(xlabel=f'$r={r/r_min:.2f}r_{{min}}, \\alpha={alpha:.2f}, ntp={ntp:.1f}$')
+          ax.set(xlabel=f'$r={r/r_min:.2f}r_\\mathrm{{min}},\\ \\alpha={alpha:.2f},\\ ntp={ntp:.1f}$')
       
     fig.tight_layout(pad=0.3)
     plt.show()
