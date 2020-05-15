@@ -137,8 +137,8 @@ for z,alpha,ntp in[(0.02,2.5,20),(0.02,1.5,20)]:
       x_y=(1-alpha**0.5)/(1-alpha)
       yde=y_eq(x_y,alpha)
       for alpha,xb,yb,xd,yd,ntp,ax in [
-        (alpha,0,0,x_y,yde-0.05,ntp,pl3),
-        (alpha,1-(yde-0.05),1-x_y,1,1,ntp,pl3),
+        (alpha,0,0,x_y,x_y - (2*x_y - 1)/1.25,ntp,pl3),
+        (alpha,1-x_y + (2*x_y - 1)/1.25,1-x_y,1,1,ntp,pl3),
         (alpha,0,0,x_y,yde,ntp,pl4),
         (alpha,1-(yde),1-x_y,1,1,ntp,pl4) ]:
           
@@ -162,10 +162,13 @@ for z,alpha,ntp in[(0.02,2.5,20),(0.02,1.5,20)]:
         xb_m=xb_m/lg
         ax.plot([xb_m,xd],[yb,yd_m],color='black',marker='+',zorder=10)
         ax.text((xd+xb)/2,1-x_y,f'{ntp_a(alpha,xb_m,yb,xd,yd_m):.2f}',verticalalignment='center', horizontalalignment='center')
-        if j==1:
-          pl4.set(xlabel=f'$\\alpha$={alpha:.2f}, ntp={ntp:.1f}')
+        if j==1 and lg<1:
+          r=1/(1/lg-1)
+          r_min=1/(1/x_y-2)
+          ax.set(xlabel=f'$r={r/r_min:.2f}r_{{min}}, \\alpha={alpha:.2f}, ntp={ntp:.1f}$')
       
     fig.tight_layout(pad=0.3)
     plt.show()
+#    plt.savefig(f"Maldist.pdf", papertype = 'a4', orientation = 'portrait', format = 'pdf')
     plt.close()
     
