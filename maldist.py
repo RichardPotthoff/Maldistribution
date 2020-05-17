@@ -165,7 +165,7 @@ for z,alpha,ntp in[(0.02,2.5,20),(0.02,1.5,20)]:
         if j==1 and lg<1:
           r=1/(1/lg-1)
           r_min=1/(1/x_y-2)
-          ax.set(xlabel=f'$r={r/r_min:.2f}r_\\mathrm{{min}},\\ \\alpha={alpha:.2f},\\ ntp={ntp:.1f}$')
+          ax.set(xlabel=f'$R={r/r_min:.2f}R_\\mathrm{{min}},\\ \\alpha={alpha:.2f},\\ ntp={ntp:.1f}$')
       
     fig.tight_layout(pad=0.3)
     plt.show()
