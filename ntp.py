@@ -82,7 +82,7 @@ def root(f,x1,x2,eps=1e-6,maxit=100):
   y1=f(x1)
   y2=f(x2)
   if (y1>0)==(y2>0):
-    raise Exception('root: no zero in interval')
+    raise Exception(f'root: no sign change in interval [{x1},{x2}]: f({x1})={y1}, f({x2})={y2}')
   it=0
   while(abs(x1-x2)>eps):
       it+=1
@@ -158,7 +158,7 @@ def ntp_i(alpha,xb,yb,xd,yd,intervals=21):
 def zeros(alpha,x0,y0,lg):
   #calculate the intersection points between operating line and equilibrium line
   b=((alpha-1)*(x0*lg+(1-y0)) + 1 - lg )
-  d=complex((b+2.0*lg)**2 -4.0*alpha*lg)**0.5
+  d=((b+2.0*lg)**2 -4.0*alpha*lg + 0j)**0.5 # add 0j to force complex evaluation
   return np.array([b - d, b + d])/(2.0*lg*(alpha-1))
   
 def plotMcCabe(alpha,xb,yb,xd,yd,ax=None,limits=((0,1),(0,1))):
@@ -187,7 +187,7 @@ def plotMcCabe(alpha,xb,yb,xd,yd,ax=None,limits=((0,1),(0,1))):
   ax.plot([xb,xd],[yb,yd],'black',marker='+')
   xp=((alpha/lg)**0.5-1)/(alpha-1)
   dy=y_eq(xp,alpha)-(yb+lg*(xp-xb))
-  ax.plot([xb,xd],[yb+dy,yd+dy],'green')
+#  ax.plot([xb,xd],[yb+dy,yd+dy],'green')
   ax.plot([xp],[y_eq(xp,alpha)],'green',marker='o')
   st=np.array(list(steps()))
   ax.plot(xz.real,yz.real,'blue',ls=':',marker='o')
