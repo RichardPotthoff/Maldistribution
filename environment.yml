@@ -1,0 +1,13 @@
+name: jupyterLab
+channels:
+  - conda-forge
+  - pyviz
+dependencies:
+  - python=3.7
+  - numpy
+  - jupyter
+  - matplotlib
+  - jupyterlab
+  - nodejs=10
+  - octave_kernel
+  - octave
