@@ -1,0 +1,16 @@
+name: jupyterLab
+channels:
+  - conda-forge
+dependencies:
+# Jupyter
+  - jupyterlab=2
+  - nodejs=11
+  - nbconvert=5.5
+  - widgetsnbextension=3.5
+# Python Kernel
+  - ipykernel=5.1
+  - ipywidgets=7.5
+  - matplotlib=3.1
+  - python=3.7
+
+
