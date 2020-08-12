@@ -105,14 +105,16 @@ def ntp_a(alpha,xb,yb,xd,yd):
   b1=b+xz[0]*scale
   b2=b+(1-yz[1])*scale
   alphaz=1/(b1*b2)
-  x_scale=(1/b2-b1)
-  y_scale=(1/b1-b2)
-  xb_=(b-b1+xb*scale)/x_scale 
-  yd_=1-(b-b2+(1-yd)*scale)/y_scale
-#  xb_=(xb-xz[0])/(xz[1]-xz[0])
-#  yd_=yd_=1-(yz[1]-yd)/(yz[1]-yz[0])
-  return ((np.log(yd_/(1-yd_))-np.log(xb_/(1-xb_)))/np.log(alphaz)).real
-  
+#  x_scale=(1/b2-b1)
+#  y_scale=(1/b1-b2)
+#  xb_=(b-b1+xb*scale)/x_scale 
+#  yd_=1-(b-b2+(1-yd)*scale)/y_scale
+  xb_=(xb-xz[0])/(xz[1]-xz[0])
+  yd_=1-(yz[1]-yd)/(yz[1]-yz[0])
+  # keep the phase angle of complex arguments to log(x) within +-180°, 
+  # otherwise the result may be off by i*2pi:
+  return ((np.log(yd_/(1-yd_))-np.log(xb_/(1-xb_)))/np.log(alphaz)).real 
+
 def ntp_s(alpha,xb,yb,xd,yd):
   lg=(yd-yb)/(xd-xb)
   if (y_eq(xb,alpha)>y_ol(xb,xb,yb,lg))==(xd>xb):
